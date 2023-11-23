@@ -16,9 +16,10 @@
 (in-package :stdout-mandelbrot)
 
 (defun mandelbrot ()
+  (declare (optimize (speed 3) (space 3) (debug 0) (safety 0)))
   (let* ((stream t)
-         (width 160)
-         (height 60)
+         (width 1600)
+         (height 600)
          (min #C(-2.1d0 -1.2d0))
          (max #C(0.6d0 1.2d0))
          (iterations 32)
@@ -27,31 +28,33 @@
          ;; real increment per pixel
          (inc-real (complex (/ (realpart (- max min))
                                width)
-                            0))
+                            0.0d0))
+
          ;; Imaginary increment per pixel
-         (inc-imag (complex 0
+         (inc-imag (complex 0.0d0
                             (/ (imagpart (- max min))
                                height))))
 
     ;; imaginary part on the y axis
     (loop
       :for row :below height
-      :for row-val = min :then (+ row-val inc-imag)
+      :for row-val :of-type (complex (double-float)) = min :then (+ row-val inc-imag)
       :do
+
          ;; Real part on the x axis
          (loop
            :for col :below width
-           :for c = row-val :then (+ c inc-real)
+           :for c :of-type (complex (double-float)) = row-val :then (+ c inc-real)
            :for iter-count = (loop
-                               :for current-iteration :below iterations
-                               :for z = (complex 0.0d0 0.0d0)
+                               :for current-iteration :upto iterations
+                               :for z :of-type (complex (double-float)) = c
                                  :then (+ (* z z) c)
                                :until (> (abs z) 2.0d0)
                                :finally (return current-iteration))
-           :for color-idx = (truncate
-                             (* (1- (length colors))
-                                (/ iter-count
-                                   iterations)))
+           :for color-idx :of-type fixnum = (truncate
+                                             (* (1- (length colors))
+                                                (/ iter-count
+                                                   iterations)))
            :do (format stream "~a" (aref colors color-idx)))
          (format stream "~%"))))
 
